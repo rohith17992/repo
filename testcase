@@ -1,3 +1,31 @@
-hello world
-hi
-
+08:56:33 PM Chaoran: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Install-CloudWatch-Agent.html 
+08:56:43 PM Chaoran: this is the new log agent currently using 08:58:36 PM Chaoran: I would suggest 
+1. confirm the route on the VPC and make sure there is no Internet routing conflict for VPC route table rtb-3383fe4b 
+2. migrate to the new log agent to replace the old one 08:58:55 PM Chaoran: what do you think? 
+09:01:09 PM c61174aws: I am 100 percent agreeing with you on migrating to the new cloudwatch agent. I need to discuss with my team about VPC Routetables. 
+09:01:22 PM c61174aws: One more small quick question. 
+09:01:26 PM Chaoran: sure 
+09:02:25 PM c61174aws: In the new config file we are able to get the metrics(Diskutilization, CPU, Memory, Paging ) ????? 
+09:02:31 PM Chaoran: yes 
+09:02:42 PM Chaoran: it has more advanced feature 09:02:50 PM Chaoran: with simpler configuration step 
+09:03:22 PM Chaoran: there is a .exe wizard to do everything which is much more convenient.
+09:03:54 PM Chaoran: what we need to do is to make sure
+1. IAM role has enough permission
+2. Internet connection works fine
+09:06:04 PM c61174aws: Perfect sounds good. I really appreciate for your time and helping me.
+09:06:36 PM Chaoran: you are most welcome. Do you want me to contact you tomorrow at 11AM EST or you want to discuss
+with your team first and decide the time? 
+09:06:51 PM c61174aws: there is a .exe wizard to do everything which is much more convenient.
+---> can you please send me the file or link ??? 
+09:07:05 PM Chaoran: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/create-cloudwatch-agent-configuration-file-wizard.html 
+09:07:20 PM Chaoran: the main link for the new log agent: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/UseCloudWatchUnifiedAgent.html 
+09:07:25 PM c61174aws: I will discuss with my team and let you know. 
+09:08:37 PM Chaoran: sure, please feel free to response the case and let me know once it has been scheduled. Please do not worry about the case auto-resolve message.
+Feel free to response the case and reopen it if you decided the time 
+09:08:48 PM Chaoran: anything else I can help today? 
+09:09:56 PM c61174aws: Nothing. 
+09:10:18 PM c61174aws: thank you. have a good day. bye 
+09:10:31 PM Chaoran: Cool. Hope you have a wonderful day. Again. Thank you for reaching out to AWS support. 
+In efforts to improve your experience, please provide us with your feedback. 
+You can provide feedback by rating my incoming summary correspondence. 
+09:10:39 PM Chaoran: Bye
