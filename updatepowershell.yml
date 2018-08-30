@@ -1,0 +1,61 @@
+---
+    - set_fact: SWPkg="Win8.1AndW2K12R2-KB3191564-x64"
+    - name: Get Agentzip out of S3
+      delegate_to: localhost
+      aws_s3:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        bucket: "{{ S3_AgentBucket }}"
+        object: /agentsoftware/{{SWPkg}}.msu 
+        dest: /tmp/{{SWPkg}}.msu
+        mode: get
+      when:  no_s3_download is undefined
+
+    - name: Copy package to server
+      win_copy:
+         src: "/tmp/{{ SWPkg }}.msu"
+         dest: "c:/windows/temp/{{ SWPkg }}.msu"
+    
+    - name: install Powershell 5.0
+      win_hotfix:
+        source: c:/windows/temp/{{ SWPkg }}.msu
+        state: present
+      register: hotfix_install
+
+    - name: Reboot target host if necessary
+      win_command: shutdown /r /f /t 60
+      args:
+        chdir: c:/
+
+    - name: Make sure server is up
+      wait_for_connection:
+         connect_timeout: 10
+         delay: 5
+         sleep: 15
+
+    - name: Stop ec2 instance to deattach/attach volume
+      delegate_to: localhost
+      ec2:
+         aws_access_key: "{{ aws_access_key }}"
+         aws_secret_key: "{{ aws_secret_key }}"
+         region: "{{ region }}"
+         instance_ids: "{{ hostvars['localhost']['InstId'] }}"
+         state: stopped
+         wait: True
+  
+    - name: Start ec2 instance again
+      delegate_to: localhost
+      ec2:
+         aws_access_key: "{{ aws_access_key }}"
+         aws_secret_key: "{{ aws_secret_key }}"
+         region: "{{ region }}"
+         instance_ids: "{{ hostvars['localhost']['InstId'] }}"
+         state: running
+         wait: True
+    
+    - name: Make sure server is up
+      wait_for_connection:
+         connect_timeout: 10
+         delay: 5
+         sleep: 15
