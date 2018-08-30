@@ -20,7 +20,7 @@
 # 6/28/2018
 
 ---
- - set_fact: SWPkg="AmazonCloudWatchAgent"
+ - set_fact: SWPkg="CloudWatch"
  - name: Get Agentzip out of S3
    delegate_to: localhost
    aws_s3:
@@ -44,7 +44,7 @@
  - name: Install application
    win_shell: ./Deploy-Application.ps1 -DeployMode silent -subscription {{ AWS_Domain }}
    args:
-     chdir: "c:/windows/temp/AmazonCloudWatchAgent/SCCM"
+     chdir: "c:/windows/temp/CloudWatch/SCCM"
      register: res
      when: no_install is undefined
  - name: Installation return code
