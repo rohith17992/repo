@@ -1,0 +1,35 @@
+---
+ - hosts: localhost
+   gather_facts: False
+   become: false
+   tasks:
+   - ec2_remote_facts:
+       region: "{{ region }}"
+       aws_access_key: "{{ aws_access_key }}"
+       aws_secret_key: "{{ aws_secret_key }}"
+       filters:
+         tag-key: "{{ tags }}"
+     register: info
+   - debug: msg="{{ info.instances|map(attribute='id')|list }}"
+   - set_fact:
+       ec2_id: "{{ info.instances|map(attribute='id')|list }}"
+   - ec2_metric_alarm:
+      name: "Memory Utilization - '{{ item  }}'"
+      state: present
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      region: "{{ region }}"
+      #metric: "UsedMemoryPercent"
+      metrics: "MemoryUtilization"
+      namespace: "AWS/CWAgent
+      statistic:  Average
+      comparison: ">"
+      threshold: 95
+      period: 60
+      evaluation_periods: 3
+      unit: "Percent"
+      description: "This metric will trigger alarm when the Memory Utilization is above 95% with a evaluation period of 3"
+      dimensions: "{'InstanceId': '{{ item  }}' }"
+      alarm_actions: ["arn:aws:sns:us-east-1:216706741663:Alarm"]
+     with_items: "{{ ec2_id }}"	  
+...
