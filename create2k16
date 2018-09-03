@@ -96,6 +96,9 @@
         # Have to use IP since AWS DNS doesn't resolve between accounts
         DNSName: "{{ ec2.instances[0].private_ip }}"
       when: DNSName is undefined
+- name: Describe instances
+    local_action:
+      module: shell aws ec2 associate-iam-instance-profile  --region ap-south-1 --instance-id {{ id }}  --iam-instance-profile Name=admin
 
     # We don't need wait_for_connection since we don't login anyways
     # Just make sure server is somewhat up
