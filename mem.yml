@@ -1,0 +1,34 @@
+---
+ - hosts: localhost
+   gather_facts: False
+   become: false
+   tasks:
+   - ec2_remote_facts:
+       region: ap-south-1
+       aws_access_key: "AKIAJWCU7NJ5W5LRQFJQ"
+       aws_secret_key: "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"
+       filters:
+         #vpc-id: vpc-478d782f
+         #"tag:Name": "{{ tags }}"
+     register: info
+   - debug: msg="{{ info.instances|list }}"
+   - set_fact:
+       ec2_id: "{{ info.instances|map(attribute='id')|list }}"
+   - ec2_metric_alarm:
+      name: "Status Check Failed - i-0fd8a5e5514750fcd"
+      state: present
+      aws_access_key: "AKIAJWCU7NJ5W5LRQFJQ"
+      aws_secret_key: "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"
+      region: ap-south-1
+      metric: "Memory % Committed Bytes In Use"
+      namespace: "CWAgent"
+      statistic: Minimum
+      comparison: ">="
+      threshold: 0
+      period: 60
+      evaluation_periods: 1
+      #unit: "Count"
+      description: "This will alarm when a bamboo slave's cpu usage average is more than 3% "
+      dimensions: "{'ImageId':'ami-09ae83da98a52eedf','InstanceId':'i-0fd8a5e5514750fcd','InstanceType':'t2.micro','objectname':'Memo$
+     with_items: "{{ ec2_id }}"
+...
