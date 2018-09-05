@@ -4,22 +4,25 @@
    become: false
    tasks:
    - ec2_remote_facts:
-       region: ap-south-1
-       aws_access_key: "AKIAJWCU7NJ5W5LRQFJQ"
-       aws_secret_key: "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"
+       region: "{{ region }}"
+       aws_access_key: "{{ aws_access_key }}"
+       aws_secret_key: "{{ aws_secret_key }}"
        filters:
          #vpc-id: vpc-478d782f
-         #"tag:Name": "{{ tags }}"
+         "tag:Name": "pub"
      register: info
-   - debug: msg="{{ info.instances|list }}"
+
+   - debug: msg="{{ info.instances|map(attribute='id')|list }}"
+
    - set_fact:
-       ec2_id: "{{ info.instances|map(attribute='id')|list }}"
+      ec2_id: "{{ info.instances|map(attribute='id')|list }}"
+
    - ec2_metric_alarm:
-      name: "Status Check Failed - i-0fd8a5e5514750fcd"
+      name: "MemoryUtilization  - i-0b4b59140b992eed7"
       state: present
-      aws_access_key: "AKIAJWCU7NJ5W5LRQFJQ"
-      aws_secret_key: "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"
-      region: ap-south-1
+      region: "{{ region }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
       metric: "Memory % Committed Bytes In Use"
       namespace: "CWAgent"
       statistic: Minimum
@@ -27,8 +30,8 @@
       threshold: 0
       period: 60
       evaluation_periods: 1
-      #unit: "Count"
-      description: "This will alarm when a bamboo slave's cpu usage average is more than 3% "
-      dimensions: "{'ImageId':'ami-09ae83da98a52eedf','InstanceId':'i-0fd8a5e5514750fcd','InstanceType':'t2.micro','objectname':'Memo$
-     with_items: "{{ ec2_id }}"
+      description: "This will alarm when a bamboo slave's cpu usage average is more than 3%"
+      dimensions: "{'ImageId':'ami-0d0d4f8ea9e3965a6','InstanceId':'i-0b4b59140b992eed7','InstanceType':'t2.micro','objectname':'Memory'}"
+      alarm_actions: ["arn:aws:sns:us-west-2:937385968647:vinaynotify"]
+      #with_items: "{{ ec2_id }}"
 ...
