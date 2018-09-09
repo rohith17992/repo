@@ -16,8 +16,6 @@
 # then run playbook with
 # ansible-playbook 
 #
-# Rainer Kraft
-# 6/28/2018
 
 ---
  - set_fact: SWPkg="CloudWatch"
