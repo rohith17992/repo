@@ -9,12 +9,14 @@
             "collect_list": [
               {
                 "file_path": "c:\\ProgramData\\Amazon\\AmazonCloudWatchAgent\\Logs\\amazon-cloudwatch-agent.log",
-                "log_group_name": "cwlg.01.s.xx.e1.03.clwagentlogs",
+                "log_group_name": "cwlg.01.s.02.e1.03.clwagentlogs",
+				"log_stream_name": "{instance_id}",
                 "timezone": "UTC"
               },
               {
                 "file_path": "c:\\ProgramData\\Amazon\\AmazonCloudWatchAgent\\Logs\\test.log",
-                "log_group_name": "cwlg.01.s.xx.e1.03.clwagentlogs",
+                "log_group_name": "cwlg.01.s.02.e1.03.clwagentlogs",
+				"log_stream_name": "{instance_id}",
                 "timezone": "Local"
               }
             ]
@@ -24,21 +26,40 @@
               {
                 "event_name": "System",
                 "event_levels": [
-                  "INFORMATION",
-                  "ERROR"
+                  "VERBOSE",
+				  "INFORMATION",
+				  "WARNING",
+                  "ERROR",
+				  "CRITICAL"
                 ],
-                "log_group_name": "System",
-                "log_stream_name": "System",
+                "log_group_name": "cwlg.01.s.02.e1.03.clwagentlogs",
+                "log_stream_name": "{instance_id}",
                 "event_format": "xml"
               },
               {
                 "event_name": "Application",
                 "event_levels": [
-                  "WARNING",
-                  "ERROR"
+                  "VERBOSE",
+				  "INFORMATION",
+				  "WARNING",
+                  "ERROR",
+				  "CRITICAL"
                 ],
-                "log_group_name": "Application",
-                "log_stream_name": "Application",
+                "log_group_name": "cwlg.01.s.02.e1.03.clwagentlogs",
+                "log_stream_name": "{instance_id}",
+                "event_format": "xml"
+              },
+              {
+                "event_name": "Security",
+                "event_levels": [
+                  "VERBOSE",
+				  "INFORMATION",
+				  "WARNING",
+                  "ERROR",
+				  "CRITICAL"
+                ],
+                "log_group_name": "cwlg.01.s.02.e1.03.clwagentlogs",
+                "log_stream_name": "Security",
                 "event_format": "xml"
               }
             ]
@@ -116,4 +137,4 @@
 			}
 		}
 	}
-}
+} 
