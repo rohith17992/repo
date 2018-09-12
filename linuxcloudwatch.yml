@@ -35,3 +35,4 @@
    register: res
  - name: Agent service
    debug: var=res.stdout_lines
+wget https://s3.amazonaws.com/amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip
