@@ -1,0 +1,37 @@
+---
+ - set_fact: SWPkg="CloudWatch"
+ - name: Get Agentzip out of S3
+   delegate_to: localhost
+   aws_s3:
+     aws_access_key: "{{ aws_access_key }}"
+     aws_secret_key: "{{ aws_secret_key }}"
+     region: "{{ region }}"
+     bucket: "{{ S3_AgentBucket }}"
+     object: /agentsoftware/Linux/Cloudwatch/{{SWPkg}}.tar.gz 
+     dest: /tmp/{{SWPkg}}.tar.gz
+     mode: get
+   when:  no_s3_download is undefined
+
+ - name: Copy package to server
+   copy:
+         src: "/tmp/{{ SWPkg }}.tar.gz"
+         dest: "/tmp/{{ SWPkg }}.tar.gz"
+   when:  no_wincp is undefined
+ - name: Unzip package on server
+   shell: cd /tmp; tar xzpvf /tmp/{{ SWPkg }}.tar.gz
+   when:  no_unzip is undefined
+ - name: Install application
+   shell: sudo ./InstallCloudwatchSSM.sh
+   args:
+     chdir: "/tmp/CloudWatch"
+   register: res
+   when: no_install is undefined
+ - name: Installation return code
+   debug: var=res.rc
+ - name: Installation output
+   debug: var=res.stdout_lines
+ - name: Check for agent running
+   shell: ps -ef | grep ssm | grep -v grep
+   register: res
+ - name: Agent service
+   debug: var=res.stdout_lines
