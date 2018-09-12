@@ -59,7 +59,7 @@
 				  "CRITICAL"
                 ],
                 "log_group_name": "cwlg.01.s.02.e1.03.clwagentlogs",
-                "log_stream_name": "Security",
+                "log_stream_name": "{instance_id}",
                 "event_format": "xml"
               }
             ]
