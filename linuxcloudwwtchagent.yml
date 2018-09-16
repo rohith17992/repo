@@ -1,0 +1,44 @@
+---
+ - hosts: win
+   gather_facts: true
+   tasks:
+    - name: Get Agentzip out of S3
+      aws_s3:
+        bucket: createwin2k16
+        object: /AmazonCloudWatchAgent.zip
+        dest:  /tmp/AmazonCloudWatchAgent.zip
+        mode: get
+      when:  no_s3_download is undefined
+
+    - name: Unzip Cloudwatch Download File
+      unarchive:
+        remote_src: yes
+        src: /tmp/AmazonCloudWatchAgent.zip
+        dest: /tmp
+        mode: 0755
+      when: no_unzip is undefined
+
+    - name: Execute the Installation Script
+      command: sudo ./install.sh
+      args:
+        chdir: /tmp
+      register: res
+      when: no_install is undefined
+
+    - name: Send metrics and logs to Cloudwatch
+      command: sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:configuration.json -s
+      args:
+       chdir: /tmp
+      register: res
+      when: no_install is undefined
+
+    - name: Installation return code
+      debug: var=res.rc
+    - name: Installation output
+      debug: var=res.stdout_lines
+    - name: Check for agent running
+      shell: ps -ef | grep amazon-cloudwatch-agent | grep -v grep
+      register: res
+    - name: Agent service
+      debug: var=res.stdout_lines
+...
