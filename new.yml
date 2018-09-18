@@ -45,3 +45,8 @@
  - name: Agent service
    debug: var=res.stdout_lines
 ...
+
+
+"InstId": ""
+"DNSName": ""
+"no_encrypt_vol": "1" 
