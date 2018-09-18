@@ -1,0 +1,47 @@
+---
+ - set_fact: SWPkg="AmazonCloudWatchAgent"
+ - name: Get Agentzip out of S3
+   delegate_to: localhost
+   aws_s3:
+     aws_access_key: "{{ aws_access_key }}"
+     aws_secret_key: "{{ aws_secret_key }}"
+     region: "{{ region }}"
+     bucket: "{{ S3_AgentBucket }}"
+     object: /LinuxCloudWatchAgent/{{SWPkg}}.tar.gz
+     dest: /tmp/{{SWPkg}}.tar.gz
+     mode: get
+   when:  no_s3_download is undefined
+ 
+ - name: Copy package to server
+   copy:
+         src: "/tmp/{{ SWPkg }}.tar.gz"
+         dest: "/tmp/{{ SWPkg }}.tar.gz"
+   when:  no_wincp is undefined
+ - name: Unzip package on server
+   shell: cd /tmp; tar xzpvf /tmp/{{ SWPkg }}.tar.gz
+   when:  no_unzip is undefined
+
+ - name: Execute the Installation Script
+   command: sudo ./install.sh
+   args:
+     chdir: "/tmp/AmazonCloudWatchAgent"
+   register: res
+   when: no_install is undefined
+
+ - name: Send metrics and logs to Cloudwatch
+   command: sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:configuration.json -s
+   args:
+      chdir: /tmp
+   register: res
+   when: no_install is undefined
+
+ - name: Installation return code
+   debug: var=res.rc
+ - name: Installation output
+   debug: var=res.stdout_lines
+ - name: Check for agent running
+   shell: ps -ef | grep amazon-cloudwatch-agent | grep -v grep
+   register: res
+ - name: Agent service
+   debug: var=res.stdout_lines
+...
