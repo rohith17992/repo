@@ -1,0 +1,52 @@
+---
+ - hosts: localhost
+   gather_facts: False
+   become: false
+   tasks:
+   - ec2_instance_facts:
+       region: ap-south-1
+       aws_access_key: "AKIAUPRFKJXT2NBE2T4X"
+       aws_secret_key: "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"
+       filters:
+         #vpc-id: vpc-478d782f
+         tag-key: "Name"
+         image-id: ami-09ae83da98a52eedf
+         #instace-id: i-0fd8a5e5514750fcd
+     register: info
+   - set_fact:
+       ec2_tag: "{{ info.instances|map(attribute='tags')|list }}"
+   - set_fact:
+       ec2_tag1: "{{ ec2_tag|map(attribute='Name')|list }}"
+   #- debug: msg=  "{{ ec_tag }}"
+   - set_fact:
+       ec2_id: "{{ info.instances|map(attribute='instance_id')|list }}"
+   - set_fact:
+       ec2_type: "{{ info.instances|map(attribute='instance_type')|list }}"
+   - set_fact:
+       ec2_img_id: "{{ info.instances|map(attribute='image_id')|list }}"
+   - set_fact:
+       obc: \??\C:\pagefile.sys
+   - debug: msg= "{{ ec2_img_id }}"
+   - ec2_metric_alarm:
+      name: "Paging- {{ item.3 }}"
+      state: present
+      aws_access_key: "AKIAUPRFKJXT2NBE2T4X"
+      aws_secret_key: "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"
+      region: ap-south-1
+      metric: "Paging File % Usage"
+      namespace: "CWAgent"
+      statistic: Minimum
+      comparison: ">="
+      threshold: 0
+      period: 60
+      evaluation_periods: 1
+      #unit: "Percent"
+      description: "To check paging"
+      dimensions: "{'ImageId':'{{ item.2 }}','InstanceId':'{{ item.0 }}','InstanceType':'{{ item.1 }}','instance':'{{ item.4 }}','objectname':'Paging File'}"
+     with_together:
+        - "{{ ec2_id }}"
+        - "{{ ec2_type }}"
+        - "{{ ec2_img_id }}"
+        - "{{ ec2_tag1 }}"
+        - "{{ obc }}"
+...
