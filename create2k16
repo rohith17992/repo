@@ -44,9 +44,6 @@
 # Skip running sysprep step with -e no_sysprep=1
 # Skip testing final image with -e no_test=1
 # Skip deletion of instance with -e no_inst_delete=1
-# 
-# Rainer Kraft
-# 6/28/2018
 
 ---
  - name: Create and start server to add user, enable WinRMI, and install agents
