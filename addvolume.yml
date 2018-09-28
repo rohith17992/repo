@@ -1,0 +1,23 @@
+---
+ - hosts: localhost
+   gather_facts: False
+   become: false
+   tasks:
+   - ec2_instance_facts:
+       region: "{{ region }}"
+       aws_access_key: "{{ aws_access_key }}"
+       aws_secret_key: "{{ aws_secret_key }}"
+       filters:
+         tag-key: "{{ tags }}"
+     register: info
+   - set_fact:
+       ec2_id: "{{ info.instances|map(attribute='instance_id')|list }}"
+	   
+   - ec2_vol:
+       instance: {{ item.0 }}
+       volume_size: 50
+       volume_type: gp2
+       device_name: /dev/xvdf
+	  with_together:
+	     - "{{ ec2_id }}"
+
