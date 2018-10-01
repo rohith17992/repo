@@ -1,1 +1,10 @@
-sds
+---
+- hosts: localhost
+  tasks:
+    - name: Create a Volume and attach
+      ec2_vol:
+        instance: {{ instance_id }}
+        volume_size: {{ vol_size }}
+        volume_type: gp2
+        device_name: /dev/xvdf
+        delete_on_termination: yes
