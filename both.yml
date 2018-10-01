@@ -8,8 +8,6 @@
        aws_access_key: "{{ aws_access_key }}"
        aws_secret_key: "{{ aws_secret_key }}"
        filters:
-         #tag-key: "{{ tags }}"
-         #'tag:Application Role': "{{ value }}"
          tag-key: "{{ key }}"
          tag-value: "{{ value }}"
      register: info
