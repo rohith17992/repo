@@ -1,0 +1,74 @@
+# Function to cleanup the insufficient cloudwatch Alarms. 
+
+from __future__ import print_function
+import json
+import boto3
+
+def lambda_handler(event, context):
+    cloudwatch = boto3.client('cloudwatch')
+    ec2 = boto3.resource('ec2')
+    
+    #Step 1:  Get alarms in INSUFFICENT_DATA state
+    #The max that we can get per loop is 100; all alarms for nonexistent instances will be in
+    #INSUFFICIENT_DATA state so let's just go through those.
+    insuff_alarms = []
+    loops = 1
+    alarms = cloudwatch.describe_alarms(StateValue='INSUFFICIENT_DATA',MaxRecords=100)
+    #print(alarms)
+    
+    insuff_alarms.extend(alarms['MetricAlarms'])
+    while ('NextToken' in alarms):
+        alarms = cloudwatch.describe_alarms(StateValue='INSUFFICIENT_DATA',MaxRecords=100,next_token=alarms['NextToken'])
+        #print('on loop',loops,'alarms is',alarms)
+        insuff_alarms.extend(alarms['MetricAlarms'])
+        loops += 1
+    print('----------------------------------------------------------------------------')    
+    print('IMPORTANT:Looped',loops,'times to generate list of ',len(insuff_alarms),'alarms in state INSUFFICIENT_DATA.')
+    print('----------------------------------------------------------------------------')
+
+    #Step 2:  Get all instances
+    #In this case we want all instances.  If an instance is stopped, so be it, we don't delete the alarm.
+    #But if the instance is gone, then....
+    #Get all alarms
+    instances = [instance for instance in ec2.instances.all()]
+    instance_ids = [instance.id for instance in instances]
+    print('We have',len(instance_ids),'instances in our account right now.')
+    #print(instance_ids)
+
+    state_dict = {}
+
+    for inst in ec2.instances.all():
+        state = inst.state['Name']
+        if state in state_dict:
+            state_dict[state] += 1
+        else:
+            state_dict[state] = 1
+    print(state_dict)
+    print('-------------------------------------------------------------------')
+    
+    #Step 3:  Find and delete orphan alarms
+    our_dim = 'InstanceId'
+    num_orphan_alarms = 0
+    for insuff_alarm in insuff_alarms:
+        #Dimensions is a list of dicts.
+        #print(insuff_alarm)
+        dims = insuff_alarm['Dimensions']
+        print(dims)
+        inst_id = ''
+        for dim in dims:
+            if dim['Name'] == our_dim:
+                inst_id = dim['Value']
+        if insuff_alarm["Namespace"] == 'CWAgent' or insuff_alarm["Namespace"] == 'AWS/EC2':
+            if inst_id:
+                #print(instance_ids)
+                print(inst_id)
+                if (inst_id not in instance_ids):
+                    #This is an alarm for an instance that doesn't exist
+                    name = insuff_alarm['AlarmName']
+                    print('Alarm',name,"is for an instance that doesn't exist:",inst_id)
+                    cloudwatch.delete_alarms(AlarmNames=[name])
+                    num_orphan_alarms += 1
+            else:
+                print(insuff_alarm['AlarmName'],'has dimensions',dims)
+
+    print(num_orphan_alarms,'orphan alarms found and deleted.')
