@@ -1,0 +1,18 @@
+---
+ - hosts: localhost
+   gather_facts: False
+   become: false
+   tasks:
+   - name: List all function
+     lambda_facts:
+       region: "{{ region }}"
+       aws_access_key: "{{ aws_access_key }}"
+       aws_secret_key: "{{ aws_secret_key }}"
+       query: all
+       function_name: lambda-001-s-02-e1-01-cloudwatchalarm
+     register: _lambda_function_details
+
+   - set_fact:
+     "{{ lambda_lookup_register_as }}":
+       arn: "{{ _lambda_function_details.ansible_facts.lambda_facts.function[lambda].function_arn }}"
+       name: "{{ _lambda_function_details.ansible_facts.lambda_facts.function[lambda].function_name }}"
