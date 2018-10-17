@@ -6,8 +6,8 @@
    - name: List all function
      lambda_facts:
        region: us-west-2
-       aws_access_key: 
-       aws_secret_key: 
+       aws_access_key: AKIAISI7BU3XDW3MU6RA
+       aws_secret_key: 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
        query: all
        #function_name: insufficientalarm
      register: _lambda_facts
@@ -15,10 +15,10 @@
        lnbda: "{{ _lambda_facts.ansible_facts.lambda_facts.function|list }}"
 
    - ec2_metric_alarm:
-      name: "Lambda Alarm- {{ item.0 }}"
+      name: "Lambda Alarm- {{ item }}"
       state: present
-      aws_access_key: ""
-      aws_secret_key: ""
+      aws_access_key: "AKIAISI7BU3XDW3MU6RA"
+      aws_secret_key: "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"
       region: us-west-2
       metric: "Errors"
       namespace: "AWS/Lambda"
@@ -28,7 +28,6 @@
       period: 60
       evaluation_periods: 1
       #unit: "Percent
-      dimension:{'Function­Name':'{{ item.0 }}'}"
-     with_together:
-        - "{{ lnbda }}"
+      dimensions: "{'FunctionName':'{{ item }}'}"
+     with_items: "{{ lnbda }}"
 ...
