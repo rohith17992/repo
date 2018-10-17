@@ -5,14 +5,30 @@
    tasks:
    - name: List all function
      lambda_facts:
-       region: "{{ region }}"
-       aws_access_key: "{{ aws_access_key }}"
-       aws_secret_key: "{{ aws_secret_key }}"
+       region: us-west-2
+       aws_access_key: 
+       aws_secret_key: 
        query: all
-       function_name: lambda-001-s-02-e1-01-cloudwatchalarm
-     register: _lambda_function_details
-
+       #function_name: insufficientalarm
+     register: _lambda_facts
    - set_fact:
-     "{{ lambda_lookup_register_as }}":
-       arn: "{{ _lambda_function_details.ansible_facts.lambda_facts.function[lambda].function_arn }}"
-       name: "{{ _lambda_function_details.ansible_facts.lambda_facts.function[lambda].function_name }}"
+       lnbda: "{{ _lambda_facts.ansible_facts.lambda_facts.function|list }}"
+
+   - ec2_metric_alarm:
+      name: "Lambda Alarm- {{ item.0 }}"
+      state: present
+      aws_access_key: ""
+      aws_secret_key: ""
+      region: us-west-2
+      metric: "Errors"
+      namespace: "AWS/Lambda"
+      statistic: Average
+      comparison: ">="
+      threshold: 1
+      period: 60
+      evaluation_periods: 1
+      #unit: "Percent
+      dimension:{'Function­Name':'{{ item.0 }}'}"
+     with_together:
+        - "{{ lnbda }}"
+...
