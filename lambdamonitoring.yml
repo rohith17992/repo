@@ -6,8 +6,8 @@
    - name: List all function
      lambda_facts:
        region: us-west-2
-       aws_access_key: AKIAISI7BU3XDW3MU6RA
-       aws_secret_key: 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
+       aws_access_key: 
+       aws_secret_key: 
        query: all
        #function_name: insufficientalarm
      register: _lambda_facts
@@ -17,8 +17,8 @@
    - ec2_metric_alarm:
       name: "Lambda Alarm- {{ item }}"
       state: present
-      aws_access_key: "AKIAISI7BU3XDW3MU6RA"
-      aws_secret_key: "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"
+      aws_access_key: 
+      aws_secret_key: 
       region: us-west-2
       metric: "Errors"
       namespace: "AWS/Lambda"
