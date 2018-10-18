@@ -1,11 +1,10 @@
----
- - hosts: localhost
+- hosts: localhost
    gather_facts: False
    become: false
    tasks:
    - name: List all function
      lambda_facts:
-       region: us-west-2
+       region: ap-south-1
        aws_access_key: 
        aws_secret_key: 
        query: all
@@ -18,7 +17,7 @@
       name: "Lambda Alarm- {{ item }}"
       state: present
       aws_access_key: 
-      aws_secret_key: 
+      aws_secret_key:
       region: us-west-2
       metric: "Errors"
       namespace: "AWS/Lambda"
@@ -29,5 +28,7 @@
       evaluation_periods: 1
       #unit: "Percent
       dimensions: "{'FunctionName':'{{ item }}'}"
+     when: "'RunProg' ==  '{{ item }}'"
      with_items: "{{ lnbda }}"
+     #when: '"RunProg" is undefind'
 ...
