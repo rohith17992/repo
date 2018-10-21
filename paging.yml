@@ -2,22 +2,25 @@
  - hosts: localhost
    gather_facts: False
    become: false
+   #vars: 
+   # abc: \??\C:\pagefile.sys
+   vars:
+    obc: \??\C:\pagefile.sys
    tasks:
    - ec2_instance_facts:
-       region: ap-south-1
-       aws_access_key: "AKIAUPRFKJXT2NBE2T4X"
-       aws_secret_key: "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"
+       region: "{{ region }}"
+       aws_access_key: "{{ aws_access_key }}" 
+       aws_secret_key: "{{ aws_secret_key }}"
        filters:
-         #vpc-id: vpc-478d782f
-         tag-key: "Name"
-         image-id: ami-09ae83da98a52eedf
-         #instace-id: i-0fd8a5e5514750fcd
+         #tag-key: "{{ key }}"
+         tag-value: "{{ value }}"
      register: info
+   - set_fact: 
+       count: "{{ info.instances|map(attribute='instance_id')|list|length }}"
    - set_fact:
        ec2_tag: "{{ info.instances|map(attribute='tags')|list }}"
    - set_fact:
        ec2_tag1: "{{ ec2_tag|map(attribute='Name')|list }}"
-   #- debug: msg=  "{{ ec_tag }}"
    - set_fact:
        ec2_id: "{{ info.instances|map(attribute='instance_id')|list }}"
    - set_fact:
@@ -25,28 +28,32 @@
    - set_fact:
        ec2_img_id: "{{ info.instances|map(attribute='image_id')|list }}"
    - set_fact:
-       obc: \??\C:\pagefile.sys
-   - debug: msg= "{{ ec2_img_id }}"
+        ip_list: "{{ (ip_list | default([])) + [obc] }}"
+     with_sequence: "start=1 count={{ count  }}"
+   - debug:
+        msg: "{{ ip_list }}"
    - ec2_metric_alarm:
-      name: "Paging- {{ item.3 }}"
+      name: "Paging Alarm- {{ item.3 }}"
       state: present
-      aws_access_key: "AKIAUPRFKJXT2NBE2T4X"
-      aws_secret_key: "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"
-      region: ap-south-1
+      region: "{{ region }}"
+      aws_access_key: "{{ aws_access_key }}" 
+      aws_secret_key: "{{ aws_secret_key }}"
+      #var: "{{ \??\C:\pagefile.sys }}"
       metric: "Paging File % Usage"
       namespace: "CWAgent"
-      statistic: Minimum
+      statistic: Maximum
       comparison: ">="
-      threshold: 0
+      threshold: 90
       period: 60
-      evaluation_periods: 1
+      evaluation_periods: 2
       #unit: "Percent"
-      description: "To check paging"
+      description: "If the disk threshold reaches more than 95 % this function will trigger alarm "
       dimensions: "{'ImageId':'{{ item.2 }}','InstanceId':'{{ item.0 }}','InstanceType':'{{ item.1 }}','instance':'{{ item.4 }}','objectname':'Paging File'}"
+      alarm_actions: ["arn:aws:sns:us-east-1:216706741663:Alarm"]
      with_together:
         - "{{ ec2_id }}"
         - "{{ ec2_type }}"
         - "{{ ec2_img_id }}"
         - "{{ ec2_tag1 }}"
-        - "{{ obc }}"
+        - "{{ ip_list }}"
 ...
