@@ -37,7 +37,7 @@
       #unit: "Count"
       description: "When the memory is 98% full trigger the alarm"
       dimensions: "{'ImageId':'{{ item.2 }}','InstanceId':'{{ item.0 }}','InstanceType':'{{ item.1 }}'}"
-      alarm_actions: ["arn:aws:sns:us-east-1:216706741663:Alarm"]
+      alarm_actions: [""]
      with_together:
         - "{{ ec2_id }}"
         - "{{ ec2_type }}"
