@@ -1,0 +1,74 @@
+import json
+import boto3
+
+
+
+def lambda_handler(event, context):
+    
+    clien = boto3.client('lambda')
+    response=clien.list_functions()
+    marker=response['NextMarker']
+    namef=[]
+    for i in response['Functions']:
+        namef.append('{0}'.format(i['FunctionName']))
+    print namef
+    # TODO implement
+    for i in namef:
+        client = boto3.client('cloudwatch')
+        response = client.put_metric_alarm(AlarmName='ErrorLambda',
+            AlarmDescription='Trigger Notification when lammda fails',
+            ActionsEnabled=True,
+            AlarmActions=[
+                'arn:aws:sns:us-east-1:216706741663:Alarm',
+            ],
+            MetricName='Errors',
+            Namespace='AWS/Lambda',
+            Statistic='SampleCount',
+            Dimensions=[
+                {
+                    'Name': 'FunctionName',
+                    'Value': '{0}'.format(i)
+                },
+            ],
+            Period=60,
+            Unit='Seconds',
+            EvaluationPeriods=2,
+            DatapointsToAlarm=1,
+            Threshold=1,
+            ComparisonOperator='GreaterThanOrEqualToThreshold',
+            TreatMissingData='ignore'
+        )
+    response=clien.list_functions(Marker='{0}'.format(marker))
+    marker=response['NextMarker']
+    namef1=[]
+    for i in response['Functions']:
+        namef1.append('{0}'.format(i['FunctionName']))
+    #print namef1
+    for i in namef1:
+        client = boto3.client('cloudwatch')
+        response = client.put_metric_alarm(AlarmName='ErrorLambda',
+            AlarmDescription='Trigger Notification when lammda fails',
+            ActionsEnabled=True,
+            AlarmActions=[
+                'arn:aws:sns:us-east-1:216706741663:Alarm',
+            ],
+            MetricName='Errors',
+            Namespace='AWS/Lambda',
+            Statistic='SampleCount',
+            Dimensions=[
+                {
+                    'Name': 'FunctionName',
+                    'Value': '{0}'.format(i)
+                },
+            ],
+            Period=60,
+            Unit='Seconds',
+            EvaluationPeriods=2,
+            DatapointsToAlarm=1,
+            Threshold=1,
+            ComparisonOperator='GreaterThanOrEqualToThreshold',
+            TreatMissingData='ignore'
+        )
+    
+    
+    
