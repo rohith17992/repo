@@ -1,0 +1,41 @@
+---
+ - name: Copy Ami to uswest-2 And bring up the server
+   hosts: localhost
+   connection: local
+   tasks:
+   - name: Create final AMI image
+     ec2_ami:
+       aws_access_key: "{{ aws_access_key }}"
+       aws_secret_key: "{{ aws_secret_key }}"
+       region: "{{ region1 }}"
+       instance_id: "{{ InstId }}"
+       no_reboot: no
+       wait: yes
+       name: "{{ FinalAMIName }}"
+       tags:
+         Name: "{{ FinalAMIName }}"
+         ansible: True
+     register: finalamiinfo
+     when: FinalAMI_Id is undefined
+
+   - set_fact: 
+       FinalAMI_Id: "{{ finalamiinfo.image_id }}"
+     when: FinalAMI_Id is undefined
+
+   - name: Print final AMI Id
+     debug: var=FinalAMI_Id  
+
+   - name: Copy Ami to west-2 region 
+     ec2_ami_copy:
+       source_region: "{{ region1 }}"
+       region: "{{ region2 }}"
+       source_image_id: "{{ FinalAMI_Id }}"
+       wait: yes
+       encrypted: yes
+       kms_key_id: "{{ KMS }}"
+              
+
+
+
+
+    
