@@ -13,13 +13,13 @@
        wait: yes
        name: "{{ FinalAMIName }}"
        tags:
-         Name: "{{ FinalAMIName }}"
-         ansible: True
+          Name: "{{ FinalAMIName }}"
+          ansible: True
      register: finalamiinfo
      when: FinalAMI_Id is undefined
 
    - set_fact: 
-       FinalAMI_Id: "{{ finalamiinfo.image_id }}"
+        FinalAMI_Id: "{{ finalamiinfo.image_id }}"
      when: FinalAMI_Id is undefined
 
    - name: Print final AMI Id
@@ -27,15 +27,37 @@
 
    - name: Copy Ami to west-2 region 
      ec2_ami_copy:
-       source_region: "{{ region1 }}"
-       region: "{{ region2 }}"
-       source_image_id: "{{ FinalAMI_Id }}"
-       wait: yes
-       encrypted: yes
-       kms_key_id: "{{ KMS }}"
-              
+        source_region: "{{ region2 }}"
+        region: "{{ region1 }}"
+        source_image_id: "{{ FinalAMI_Id }}"
+        wait: yes
+        encrypted: yes
+        kms_key_id: "{{ KMS }}"  
 
+   - name: Tell AWS to delete instance
+     ec2:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region1 }}"
+        instance_ids: "{{ InstId }}"
+        state: absent
+        wait: true
 
-
-
-    
+   - name: "Start Windows instances."
+     ec2:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region1 }}"
+        image: "{{ AMIId }}"
+        instance_type: "{{ InstType }}"
+        key_name: "{{ PemKey }}"
+        group_id: "{{ SecGroup }}"
+        vpc_subnet_id: "{{ VPCSubNetId }}"
+        instance_profile_name: "{{ IAMRole }}"
+        wait: yes
+        instance_tags: '{
+          "Name": "ec2.{{AWSPrefix}}.{{ Name }}",
+          "Host_Name": "{{ Name }}",
+          "Domain_Name": "salliemae.com"
+          }'      
+        
