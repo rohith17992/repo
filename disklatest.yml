@@ -3,31 +3,54 @@
    gather_facts: False
    become: false
    tasks:
-    - name: Get disk facts
-      win_disk_facts:
-         #region: ap-south-1
-         #aws_access_key: ""
-         #aws_secret_key: ""
-
-    - name: Output first disk size
-      debug:
-        var: ansible_facts.disks[0].partitions[0].drive_letter|list
-
-    - name: Convert first system disk into various formats
-      debug: msg:'{{ disksize_gib }} vs {{ disksize_gib_human }}'
-      vars:
-        # Get first system disk
-        disk: '{{ ansible_facts.disks|selectattr("system_disk")|first }}'
-
-        # Show disk size in Gibibytes
-        disksize_gib_human: '{{ disk.size|filesizeformat(True) }}'   # returns "223.6 GiB" (human readable)
-        disksize_gib: '{{ (disk.size/1024|pow(3))|round|int }} GiB'  # returns "224 GiB" (value in GiB)
-
-        # Show disk size in Gigabytes
-        disksize_gb_human: '{{ disk.size|filesizeformat }}'        # returns "240.1 GB" (human readable)
-        disksize_gb: '{{ (disk.size/1000|pow(3))|round|int }} GB'  # returns "240 GB" (value in GB)
-
-    - name: Output second disk serial number
-      debug:
-        var: ansible_facts.disks[0].serial_number
+    - win_disk_facts:
+    - debug: msg="{{ ansible_facts.disks[0].partitions[0].drive_letter }}:"
+    - set_fact:
+        drive: "{{ ansible_facts.disks[0].partitions[0].drive_letter|list }}"
+ - hosts: localhost
+   gather_facts: False
+   become: false
+   tasks:
+   - ec2_instance_facts:
+       region: ap-south-1
+       aws_access_key: ""
+       aws_secret_key: ""
+       filters:
+         tag-key: "Name"
+         image-id: ami-09ae83da98a52eedf
+     register: info
+   - set_fact:
+       ec2_tag: "{{ info.instances|map(attribute='tags')|list }}"
+   - set_fact:
+       ec2_tag1: "{{ ec2_tag|map(attribute='Name')|list }}"
+   - set_fact:
+       cdrive: "{{ hostvars['13.23']['drive'] }}"
+   - set_fact:
+       ec2_id: "{{ info.instances|map(attribute='instance_id')|list }}"
+   - set_fact:
+       ec2_type: "{{ info.instances|map(attribute='instance_type')|list }}"
+   - set_fact:
+       ec2_img_id: "{{ info.instances|map(attribute='image_id')|list }}"
+   - debug: msg= "{{ ec2_img_id }}"
+   - ec2_metric_alarm:
+      name: "Disk Alarm- {{ item.3 }}"
+      state: present
+      aws_access_key: ""
+      aws_secret_key: ""
+      region: ap-south-1
+      metric: "LogicalDisk % Free Space"
+      namespace: "CWAgent"
+      statistic: Minimum
+      comparison: ">="
+      threshold: 60
+      period: 60
+      evaluation_periods: 1
+      description: "This will alarm when a bamboo slave's cpu usage average is more than 3% "
+      dimensions: "{'ImageId':'{{ item.2 }}','InstanceId':'{{ item.0 }}','InstanceType':'{{ item.1 }}','instance':'{{ item.4 }}'+':','objectname':'LogicalDisk'}"
+     with_together:
+        - "{{ ec2_id }}"
+        - "{{ ec2_type }}"
+        - "{{ ec2_img_id }}"
+        - "{{ ec2_tag1 }}"
+        - "{{ cdrive }}"
 ...
