@@ -36,6 +36,7 @@
       #unit: "Count"
       description: "This will alarm when a bamboo slave's cpu usage average is more than 3% "
       dimensions: "{'ImageId':'{{ item.2 }}','InstanceId':'{{ item.0 }}','InstanceType':'{{ item.1 }}','objectname':'Memory'}"
+      when: "'yes' in '{% for product in  ['node','log','nj'] %} {% if   item.1.find( product ) != -1  %} yes {% else %} no {% endif %} {% endfor %}'"
      with_together:
         - "{{ ec2_id }}"
         - "{{ ec2_type }}"
