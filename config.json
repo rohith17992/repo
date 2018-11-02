@@ -10,13 +10,11 @@
               {
                 "file_path": "c:\\ProgramData\\Amazon\\AmazonCloudWatchAgent\\Logs\\amazon-cloudwatch-agent.log",
                 "log_group_name": "cwlg.01.s.02.e1.03.clwagentlogs",
-				"log_stream_name": "{instance_id}",
                 "timezone": "UTC"
               },
               {
                 "file_path": "c:\\ProgramData\\Amazon\\AmazonCloudWatchAgent\\Logs\\test.log",
                 "log_group_name": "cwlg.01.s.02.e1.03.clwagentlogs",
-				"log_stream_name": "{instance_id}",
                 "timezone": "Local"
               }
             ]
@@ -26,40 +24,21 @@
               {
                 "event_name": "System",
                 "event_levels": [
-                  "VERBOSE",
-				  "INFORMATION",
-				  "WARNING",
-                  "ERROR",
-				  "CRITICAL"
+                  "INFORMATION",
+                  "ERROR"
                 ],
-                "log_group_name": "cwlg.01.s.02.e1.03.clwagentlogs",
-                "log_stream_name": "{instance_id}",
+                "log_group_name": "System",
+                "log_stream_name": "System",
                 "event_format": "xml"
               },
               {
                 "event_name": "Application",
                 "event_levels": [
-                  "VERBOSE",
-				  "INFORMATION",
-				  "WARNING",
-                  "ERROR",
-				  "CRITICAL"
+                  "WARNING",
+                  "ERROR"
                 ],
-                "log_group_name": "cwlg.01.s.02.e1.03.clwagentlogs",
-                "log_stream_name": "{instance_id}",
-                "event_format": "xml"
-              },
-              {
-                "event_name": "Security",
-                "event_levels": [
-                  "VERBOSE",
-				  "INFORMATION",
-				  "WARNING",
-                  "ERROR",
-				  "CRITICAL"
-                ],
-                "log_group_name": "cwlg.01.s.02.e1.03.clwagentlogs",
-                "log_stream_name": "{instance_id}",
+                "log_group_name": "Application",
+                "log_stream_name": "Application",
                 "event_format": "xml"
               }
             ]
@@ -77,11 +56,12 @@
 		"metrics_collected": {
 			"LogicalDisk": {
 				"measurement": [
-					"% Free Space"
+					"% Free Space",
+					"Free Megabytes"
 				],
 				"metrics_collection_interval": 30,
 				"resources": [
-					"*"
+					"_Total"
 				]
 			},
 			"Memory": {
@@ -109,7 +89,7 @@
 				],
 				"metrics_collection_interval": 30,
 				"resources": [
-					"*"
+					"_Total"
 				]
 			},
 			"Processor": {
@@ -137,4 +117,4 @@
 			}
 		}
 	}
-} 
+}
