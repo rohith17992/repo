@@ -1,0 +1,13 @@
+---
+ - hosts: localhost
+   gather_facts: False
+   become: false
+   tasks:
+   - name: Delete an object from a bucket
+     s3:
+	  region: "{{ region }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      bucket: mybucket
+      object: /my/desired/key.txt
+      mode: delobj
