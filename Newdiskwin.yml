@@ -1,0 +1,77 @@
+---
+ - hosts: localhost
+   gather_facts: False
+   become: false
+   tasks:
+   - ec2_instance_facts:
+       region: "{{ region }}"
+       aws_access_key: "{{ aws_access_key }}"
+       aws_secret_key: "{{ aws_secret_key }}"
+       filters:
+         #tag-key: "{{ key }}"
+         tag-value: "{{ item }}"
+     register: info
+    with_items:
+       - win
+       - linux
+   - set_fact:
+       ec2_img_id_win: "{{ info.results[0].instances|map(attribute='image_id')|list }}"
+       ec2_img_id_linux: "{{ info.results[1].instances|map(attribute='image_id')|list }}"
+   - set_fact:
+       ec2_type_win: "{{ info.results[0].instances|map(attribute='instance_type')|list }}"
+       ec2_type_linux: "{{ info.results[1].instances|map(attribute='instance_type')|list }}"
+   - set_fact:
+       ec2_id_win: "{{ info.results[0].instances|map(attribute='instance_id')|list }}"
+       ec2_id_linux: "{{ info.results[1].instances|map(attribute='instance_id')|list }}"
+
+   - set_fact:
+       ec2_tag_win: "{{ info.results[0].instances|map(attribute='tags')|list }}"
+       ec2_tag_linux: "{{ info.results[1].instances|map(attribute='tags')|list }}"
+   - set_fact:
+       ec2_tag1_win: "{{ ec2_tag_win|map(attribute='Name')|list }}"
+       ec2_tag1_linux: "{{ ec2_tag_linux|map(attribute='Name')|list }}"
+       
+   - ec2_metric_alarm:
+      name: "disk used - {{ item.3 }} - {{ item.0 }}"
+      state: present
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      region: "{{ region }}"
+      metric: "disk_used_percent"
+      namespace: "CWAgent"
+      statistic: Average
+      comparison: ">="
+      threshold: 98
+      period: 60
+      evaluation_periods: 3
+      description: "When the disk is 98% full trigger the alarm"
+      dimensions: "{'ImageId':'{{ item.2 }}','InstanceId':'{{ item.0 }}','InstanceType':'{{ item.1 }}','device':'rootfs','fstype':'rootfs','path':'/'}"
+      alarm_actions: ["arn:aws:sns:us-east-1:216706741663:Alarm"]
+     with_together:
+        - "{{ ec2_id_win }}"
+        - "{{ ec2_type_win }}"
+        - "{{ ec2_img_id_win }}"
+        - "{{ ec2_tag1_win }}"
+
+  - ec2_metric_alarm:
+      name: "disk used - {{ item.3 }} - {{ item.0 }}"
+      state: present
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      region: "{{ region }}"
+      metric: "disk_used_percent"
+      namespace: "CWAgent"
+      statistic: Average
+      comparison: ">="
+      threshold: 98
+      period: 60
+      evaluation_periods: 3
+      description: "When the disk is 98% full trigger the alarm"
+      dimensions: "{'ImageId':'{{ item.2 }}','InstanceId':'{{ item.0 }}','InstanceType':'{{ item.1 }}','device':'rootfs','fstype':'rootfs','path':'/'}"
+      alarm_actions: ["arn:aws:sns:us-east-1:216706741663:Alarm"]
+     with_together:
+        - "{{ ec2_id_linux }}"
+        - "{{ ec2_type_linux }}"
+        - "{{ ec2_img_id_linux }}"
+        - "{{ ec2_tag1_linux }}"
+...
