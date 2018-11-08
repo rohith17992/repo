@@ -1,0 +1,28 @@
+---
+ - name: Stop sandbox instances
+   hosts: localhost
+   gather_facts: false
+   connection: local
+   vars:
+     instance_ids:
+       - 'i-xxxxxx'
+       - 'i-xxxxxx'
+       - 'i-xxxxxx'
+     region: us-east-1
+   tasks:
+     - name: Stop the sandbox instances
+       ec2:
+         aws_access_key: "{{ aws_access_key }}"
+         aws_secret_key: "{{ aws_secret_key }}"
+         instance_ids: '{{ instance_ids }}'
+         region: '{{ region }}'
+         state: stopped
+         wait: True
+
+     - name: Start the sandbox instances
+       ec2:
+         instance_ids: '{{ instance_ids }}'
+         region: '{{ region }}'
+         instance_type: t2.large
+         state: running
+         wait: True
