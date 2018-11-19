@@ -1,0 +1,38 @@
+---
+ - set_fact: SWPkg="gvtap_agent"
+ - name: Get Agentzip out of S3
+   delegate_to: localhost
+   aws_s3:
+     aws_access_key: "{{ aws_access_key }}"
+     aws_secret_key: "{{ aws_secret_key }}"
+     region: "{{ region }}"
+     bucket: "{{ S3_AgentBucket }}"
+     object: /agentsoftware/Windows/Gigamon/{{SWPkg}}.zip
+     dest: /tmp/{{SWPkg}}.zip
+     mode: get
+   when:  no_s3_download is undefined
+
+ - name: Copy package to server
+   win_copy:
+       src: "/tmp/{{ SWPkg }}.zip"
+       dest: "C:/Windows/Temp/{{ SWPkg }}.zip"
+   when:  no_wincp is undefined
+
+ - name: Unzip package on server
+   win_unzip:
+     src: C:\Windows\Temp\{{ SWPkg }}.zip
+     dest: C:\Windows\Temp\{{ SWPkg }}
+
+ - name: Install application
+   win_shell: ./WinPcap_4_1_3.exe -DeployMode silent
+   args:
+      chdir: "C:/Windows/Temp/gvtap_agent/winpcap"
+   register: res
+   when: no_install is undefined
+
+ - name: Check for agent running
+   win_shell: ps  | ?{ $_ -match '.*gvtapd.*'}
+   register: res
+   
+ - name: Agent service
+   debug: var=res.stdout_lines
