@@ -1,0 +1,236 @@
+# Creates new template out of Amazon template
+# - Creates temp instance out of Amazon AMI
+# - Enables ssh and adds local user slmblocaladmin (pwd see KeePass)
+# - encrypts boot volume
+# - installes Cloudwatch, FireEye agent
+# - Copies Sophos agent installation files to server and unpacks then
+#   Install them with c:\windows\temp\Sophos\Deploy-Application.ps1
+# CFT will them create new AMI out of this server and publish it 
+#
+# Expects variables 
+# Set these variables with -e when calling with ansible or set in Tower template
+#  Name:          Name of new template, hostname of temp instance 
+#  AWSPrefix:     Prefix for AWS object names with type (01.s.02.e1.01)
+#                 Name of objects will be <type>.<AWSPrefix>.<Name>
+#  AMIId:         AMI id to use for new template
+#  CFExportName:  Name of CoudFormation export
+#  InstType:      [t2.micro,...]
+#  PemKey:        PEM Key to build temp instance with
+#  SecGroupId:    Security Group for temp instance
+#  VPCSubNetId:   VPC Subnet Id for temp instance
+#  IAMRole:       IAMRole for server
+#  FinalAMIName:  Name of final template without AWSPrefix
+#  RoleCFL:        Role to create CF stack to publish AMI
+#  RoleLambda:    Role to execute Lambda in CF stack 
+#
+# Following variables come out of group_vars/all 
+#  aws_access_key
+#  aws_secret_key
+#  region
+#  LocalAdmin:     Local admin account on template
+#  LocalAdminPwd:  Password for local admin account on template
+#  S3_AgentBucket: S3 bucket for agent packages in /agentsoftware/SCCM
+#  AWS_Domain:     Domain for CloudWatch (nonprod,prod,nonprodpci,prodpci,...
+#
+# Test with Ansible on awsnplansdv001:
+# run /home/ansible/venv27/bin/activate
+# then run playbook with
+# ansible-playbook -e AMIId="" -e InstType=t2.micro -e PemKey= -e SecGroup= -e VPCSubNetId= -e Name= -e AWSPrefix=
+# Skip creation of server with -e DNSName=... -e InstId=...
+# Skip encrypting boot vol with -e no_encrypt_vol=1
+#   See EncryptVol.yml for variables to skip tasks inside
+# Skip installing agents with -e no_agent_installation=1
+#   Skip downloading from S3 with -e no_s3_download
+# Skip creating final AMI with -e FinalAMI_Id=...
+# Skip testing final image with -e no_test=1
+# Skip deletion of instance with -e no_inst_delete=1
+
+
+---
+ - name: Create and start server to add user, enable ssh password login, and install agents
+   hosts: localhost
+   connection: local
+   tasks:
+    - name: "Start Amazon Linux instances."
+      ec2:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        image: "{{ AMIId }}"
+        instance_type: "{{ InstType }}"
+        key_name: "{{ PemKey }}"
+        group_id: "{{ SecGroup }}"
+        vpc_subnet_id: "{{ VPCSubNetId }}"
+        #instance_profile_name: "{{ IAMRole }}"
+        wait: yes
+        instance_tags: '{
+          "Name": "ec2.{{AWSPrefix}}.{{ Name }}",
+          "Host_Name": "{{ Name }}",
+          "Domain_Name": "salliemae.com"
+          }'
+        user_data: |
+         #!/bin/bash
+         /usr/sbin/useradd -c "Local admin" {{ LocalAdmin }}
+         echo "{{ LocalAdminPwd }}" | passwd --stdin {{ LocalAdmin }}
+         echo "%{{ LocalAdmin }} ALL=(ALL) NOPASSWD: ALL" >>/etc/sudoers
+         sed -e 's/^SELINUX=.*/SELINUX=disabled/' -i /etc/selinux/config
+         sed -e 's/^#*PermitRootLogin.*/PermitRootLogin no/' -e s'/^ChallengeResponseAuthentication.*/ChallengeResponseAuthentication yes/' -i /etc/ssh/sshd_config
+         systemctl restart sshd
+      register: ec2
+      when: DNSName is undefined
+    - set_fact: 
+        InstId: "{{ ec2.instance_ids[0] }}"
+        # ugly construct due to / in variable name for /dev/xvda
+        VolId: "{{ vars['ec2']['instances'][0]['block_device_mapping']['/dev/xvda']['volume_id'] }}"
+        Zone: "{{ ec2.instances[0].placement }}"
+        # Have to use IP since AWS DNS doesn't resolve between accounts
+        DNSName: "{{ ec2.instances[0].private_ip }}"
+      when: DNSName is undefined
+
+    # We don't need wait_for_connection since we don't login anyways
+    # Just make sure server is somewhat up
+    - name: Wait for ssh to come up
+      wait_for:
+        host: "{{ DNSName }}"
+        port: 22
+        delay: 30
+        timeout: 600
+        state: started
+      when: no_encrypt_vol is undefined
+
+    - name: Encrypt boot volume
+      include: EncryptVol.yml
+      when: no_encrypt_vol is undefined
+
+    - name: Add server to host group
+      add_host:
+        name: "{{ DNSName }}"
+        groups: NewServers
+        ansible_user: '{{ LocalAdmin }}'
+        ansible_password: "{{ LocalAdminPwd }}"
+        # From now on we don't have to specify connection: local anymore for 
+        # localhost hosts
+
+ # Switch to server since it's known and up now
+ - hosts: "{{ hostvars['localhost']['DNSName'] }}"
+   gather_facts: no
+   tasks:
+    - name: Make sure server is up
+      wait_for_connection:
+         connect_timeout: 10
+         delay: 5
+         sleep: 15
+      when: no_agent_installation is undefined
+
+    # Make sure server is up and reachable at this point. EncryptVol is 
+    # doing this
+    - name: Install CloudWatch agent
+      include: InstallCloudWatchLinux.yml
+      when: no_agent_installation is undefined and no_cloudwatch is undefined
+    - name: Install FireEye agent
+      include: InstallFireEyeLinux.yml
+      when: no_agent_installation is undefined and no_fireeye is undefined
+    - name: Copy and prep Sophos installation files
+      include: InstallSophosLinux.yml
+      when: no_agent_installation is undefined
+
+ - hosts: localhost
+   tasks:
+    - name: Create final AMI image
+      ec2_ami:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        instance_id: "{{ InstId }}"
+        no_reboot: no
+        wait: yes
+        name: "{{ FinalAMIName }}"
+        tags:
+           Name: "{{ FinalAMIName }}"
+           ansible: True
+      register: finalamiinfo
+      when: FinalAMI_Id is undefined
+    - set_fact: 
+         FinalAMI_Id: "{{ finalamiinfo.image_id }}"
+      when: FinalAMI_Id is undefined
+    - name: Print final AMI Id
+      debug: var=FinalAMI_Id
+
+    - name: "Create and start RHEL instances."
+      ec2:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        image: "{{ FinalAMI_Id }}"
+        instance_type: "{{ InstType }}"
+        key_name: "{{ PemKey }}"
+        group_id: "{{ SecGroup }}"
+        vpc_subnet_id: "{{ VPCSubNetId }}"
+        #instance_profile_name: "{{ IAMRole }}"
+        wait: yes
+        instance_tags: '{
+          "Name": "ec2.{{AWSPrefix}}.{{ Name }}-Test",
+          "Host_Name": "{{ Name }}-Test",
+          "Domain_Name": "salliemae.com"
+          }'
+        user_data: |
+         #!/bin/bash
+         hostname
+      register: ec2
+      when: TestDNSName is undefined and no_test is undefined
+    - set_fact: 
+        TestInstId: "{{ ec2.instance_ids[0] }}"
+        # ugly construct due to / in variable name for /dev/sda1
+        # Have to use IP since AWS DNS doesn't resolve between accounts
+        TestDNSName: "{{ ec2.instances[0].private_ip }}"
+      when: TestDNSName is undefined and no_test is undefined
+
+    - name: Add server to host group
+      add_host:
+        name: "{{ TestDNSName }}"
+        groups: NewServers
+        ansible_user: '{{ LocalAdmin }}'
+        ansible_password: "{{ LocalAdminPwd }}"
+      when: no_test is undefined
+
+ # Switch to different host
+ - name: Test AMI Id by building new server, installing Sophos, and looking for agents
+   include: TestFinalAMILinux.yml
+   when: no_test is undefined
+ 
+ # Switch back to localhost
+ - name: Publish AMI Id
+   hosts: localhost
+   tasks:
+    - set_fact: StackName="cf-{{ AWSPrefix | replace('.','-') }}-PublishAWSLinux-AMI"
+    - name: Delete old cloudformation stack
+      cloudformation:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        stack_name: "{{ StackName }}"
+        state: absent
+    - name: Create new stack
+      cloudformation:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        role_arn: "{{ RoleCFL }}"
+        stack_name: "{{ StackName }}"
+        template: PublishAMI.yml  
+        template_parameters:
+          amiid: "{{ FinalAMI_Id }}"
+          region: "{{ region }}"
+          rolearn: "{{ RoleLambda }}"
+          ExportName: "{{ CFExportName }}"
+
+    - name: Tell AWS to delete instance
+      ec2:
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        instance_ids: "{{ InstId }}"
+        state: absent
+        wait: true
+      when: no_inst_delete is undefined
+
