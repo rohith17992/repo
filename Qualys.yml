@@ -1,0 +1,77 @@
+# Installs CloudWatch agent on Windows 2016 server in us-east-1
+#
+# Expects variables
+# Set these variables with -e when calling with ansible or set in Tower template
+# or they're set when calling with include from another playbook
+#
+# Following variables come out of group_vars/all
+#  aws_access_key
+#  aws_secret_key
+#  region
+#  S3_AgentBucket: S3 bucket for agent packages in /agentsoftware/SCCM
+#  AWS_Domain:     Domain for CloudWatch (nonprod,prod,nonprodpci,prodpci,...
+#
+# Test with Ansible on awsnplansdv001:
+# run /home/ansible/venv27/bin/activate
+# then run playbook with
+# ansible-playbook 
+#
+# Vinay
+# 12/20/2018
+
+---
+ #- set_fact: USERID="a00461"
+ #- set_fact: xxx
+
+ - name: Add to Qualys User
+   user:
+      name: Qualys
+      comment: Qualys User
+      #uid: {{ USERID }}
+      USERID: a00461
+      group: root
+ - name: Add Sudoers to QUAlys
+   copy:
+       dest: "/etc/sudoers.d/provision"
+       content: "qualys  ALL=(ALL)  NOPASSWD: ALL"
+
+ - name: Add .ssh directories
+   file:
+     path=/home/qualys/.ssh
+     state=directory
+     mode=0700
+     owner=qualys
+     group=root
+  
+ - name: Add keys
+   lineinfile:
+     dest=/home/qualys/.ssh/authorized_keys
+     state=present
+     create=yes
+     line=" "
+     owner=qualys
+     group=root
+     mode=0644
+ - name: Get Agentzip out of S3
+   delegate_to: localhost
+   aws_s3:
+     aws_access_key: "{{ aws_access_key }}"
+     aws_secret_key: "{{ aws_secret_key }}"
+     region: "{{ region }}"
+     bucket: "{{ S3_AgentBucket }}"
+     object: /qualys-keys/qualys_id_rsa.pub
+     dest: /tmp/id_rsa.pub
+     mode: get
+
+
+ - name: SSH keys
+   copy:
+     src=/tmp/id_rsa.pub
+     dest=/home/qualys/.ssh/autorized_keys
+     owner=qualys
+     group=root
+     mode=0600
+    
+ - name: allow user for ssh
+   shell: sed -i 's/#\?\(AllowUsers\s\).*/\1 ec2-user a00461/' /etc/ssh/sshd_config
+   
