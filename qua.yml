@@ -1,0 +1,48 @@
+---
+ - hosts: localhost
+   tasks:
+   - name: Add to Qualys User
+     user:
+      name: Qualys
+      comment: Qualys User
+      uid: 1234
+      group: root
+
+   - name: Add Sudoers to Qualys
+     copy:
+       dest: "/etc/sudoers.d/provision"
+       content: "Qualys  ALL=(ALL)  NOPASSWD: ALL"
+
+   - name: Add .ssh directories
+     file:
+      path=/home/Qualys/.ssh
+      state=directory
+      mode=0700
+      owner=Qualys
+
+   - name: Add keys
+     lineinfile:
+      dest=/home/Qualys/.ssh/authorized_keys
+      state=present
+      create=yes
+      line=" "
+      owner=Qualys
+      mode=0644
+
+   - name: Get Agentzip out of S3
+     aws_s3:
+      aws_access_key: 
+      aws_secret_key: 
+      region: us-west-2
+      bucket: agentsoftware1
+      object: qualys_id_rsa.pub
+      dest: /tmp/id_rsa.pub
+      mode: get
+   - name: SSH keys
+     copy:
+        src=/tmp/id_rsa.pub
+        dest=/home/Qualys/.ssh/authorized_keys
+        owner=Qualys
+        mode=0600
+   - name: allow user for ssh
+     shell: sed -i 's/#\?\(AllowUsers\s\).*/\1 ec2-user 1234/' /etc/ssh/sshd_config
