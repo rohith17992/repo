@@ -42,7 +42,7 @@
       state: present
       key: "{{ lookup('file', '/home/xxxx/.ssh/id_rsa.pub') }}" 
 ===========================================================================
-               I Need yum module to install kernel headers
+               Need yum module to install kernel headers
 ===========================================================================
 sudo yum install kernel-headers -y
 sudo yum install kernel-devel-`uname -r` -y
