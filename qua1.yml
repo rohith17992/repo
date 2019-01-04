@@ -40,7 +40,7 @@
     authorized_key:
       user: slmblocaladmin
       state: present
-      key: "{{ lookup('file', '/home/e79138t/.ssh/id_rsa.pub') }}" 
+      key: "{{ lookup('file', '/home/xxxx/.ssh/id_rsa.pub') }}" 
 ===========================================================================
                I Need yum module to install kernel headers
 ===========================================================================
