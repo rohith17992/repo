@@ -1,0 +1,50 @@
+---
+  - set_fact :
+      USERID="a00461"
+      S3URL="XXXX"
+
+  - name: Add Qualys User
+    sudo: yes
+    user:
+      name: "{{ USERID }}"
+======================================================================
+           add user to /etc/sudoers
+=========================================================================
+  - name: Add user to the Sudoers
+    copy:
+      dest: "/etc/sudoers.d/{{ USERID }}"
+      content: "{{ USERID }}  ALL=(ALL)  NOPASSWD: ALL"
+
+  - name: Add .ssh directory
+    file:
+      path="/home/{{ USERID }}/.ssh"
+      state=directory
+      owner="{{ USERID }}"
+      mode=0700
+
+  - name: Add key from S3 Bucket
+    get_url:
+      url: https://s3.amazonaws.com/qualys-key/qualys_id_rsa.pub
+      dest: /home/{{ USERID }}/.ssh/authorized_keys
+      owner: "{{ USERID }}"
+      mode: 0600
+
+  - lineinfile:
+      dest=/etc/ssh/sshd_config
+      regexp='^AllowUsers'
+      line='AllowUsers {{ USERID }}'
+==========================================================================
+              USE below module to add file
+==========================================================================
+ - name: Set authorized key for slmblocaladmin
+    authorized_key:
+      user: slmblocaladmin
+      state: present
+      key: "{{ lookup('file', '/home/e79138t/.ssh/id_rsa.pub') }}" 
+===========================================================================
+               I Need yum module to install kernel headers
+===========================================================================
+sudo yum install kernel-headers -y
+sudo yum install kernel-devel-`uname -r` -y
+sudo yum install gcc -y
+sudo yum remove gcc -y   #if needs to be removed after install
