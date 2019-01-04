@@ -38,7 +38,7 @@
 ==========================================================================
  - name: Set authorized key for slmblocaladmin
     authorized_key:
-      user: slmblocaladmin
+      user: XXX
       state: present
       key: "{{ lookup('file', '/home/xxxx/.ssh/id_rsa.pub') }}" 
 ===========================================================================
